@@ -1,0 +1,31 @@
+{
+  "name": "bluetooth-adapter-lab",
+  "version": "1.1.2",
+  "private": true,
+  "description": "Windows Bluetooth adapter and BLE peripheral diagnostic desktop app",
+  "author": "Bluetooth Lab",
+  "main": "src/main.js",
+  "scripts": {
+    "build:backend": "dotnet publish ../BluetoothDiagnostics.csproj -c Release -p:OutputPath=artifacts/gui-dev/ --self-contained false -o backend-dev",
+    "start": "npm run build:backend && electron .",
+    "start:built": "electron .",
+    "test": "node --test tests/*.test.js",
+    "test:ui": "electron . --smoke-test",
+    "test:core": "dotnet run --project ../tests/DiagnosticCore.Tests -c Release -- ../artifacts/tests/core-results.json",
+    "test:field": "electron . --field-test",
+    "build:win": "dotnet publish ../BluetoothDiagnostics.csproj -c Release -p:OutputPath=artifacts/gui-package/ -r win-x64 --self-contained true -o backend-package && electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "local.bluetooth.adapterlab",
+    "productName": "Bluetooth Adapter Lab",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "package.json"],
+    "extraResources": [{ "from": "backend-package", "to": "backend", "filter": ["**/*", "!*.pdb"] }],
+    "asar": true,
+    "win": { "target": ["portable"], "artifactName": "Bluetooth-Adapter-Lab-${version}-${arch}.${ext}" }
+  }
+}

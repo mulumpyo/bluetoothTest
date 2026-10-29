@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none';">
+  <title>Bluetooth Adapter Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="view-model.js"></script>
+  <script defer src="renderer.js"></script>
+</head>
+<body>
+  <div class="titlebar" role="toolbar" aria-label="창 제어">
+    <div class="titlebarDrag"><span class="titlebarMark">ᛒ</span><span>Bluetooth Adapter Lab</span></div>
+    <div class="windowControls">
+      <button class="windowButton" data-window="minimize" aria-label="최소화"><span class="iconMinimize"></span></button>
+      <button class="windowButton" data-window="maximize" aria-label="최대화 또는 복원"><span class="iconMaximize"></span></button>
+      <button class="windowButton closeWindow" data-window="close" aria-label="닫기"><span class="iconClose"></span></button>
+    </div>
+  </div>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand"><div class="brandmark">ᛒ</div><div><strong>Bluetooth Lab</strong><small>USB ADAPTER DIAGNOSTIC</small></div></div>
+      <div class="sideCaption">선택한 어댑터</div>
+      <div class="deviceState"><span class="deviceIcon">ᛒ</span><div><b id="sideName">장치 확인 중</b><span id="sideDevice">Windows Bluetooth API</span></div></div>
+      <div class="sideTitle">테스트 워크플로</div>
+      <button class="step navStep" data-section="adapterPanel"><em id="step1">01</em><span><b>어댑터 선택</b><small>현재 연결 · VID / PID</small></span></button>
+      <button class="step navStep" data-section="capabilities"><em id="step2">02</em><span><b>지원 기능 확인</b><small>Peripheral 역할 우선 검사</small></span></button>
+      <button class="step navStep" data-section="serverPanel"><em id="step3">03</em><span><b>GATT 서버 시험</b><small>연결 가능한 BLE 광고</small></span></button>
+      <button class="step navStep" data-section="connectionsPanel"><em id="step4">04</em><span><b>스마트폰 · 다중 연결</b><small>읽기 / 쓰기 · 세션 관측</small></span></button>
+      <div class="sideInfo"><b>결과를 단계별로 확인하세요.</b><br>지원 기능 → 광고 → 스마트폰 통신<br><br>연결 수는 실측 관측값입니다.<br>Controller 최대 수는 미확인입니다.</div>
+      <div class="engineState"><span id="engineDot"></span><span id="engineLabel">진단 엔진 연결 중</span></div>
+    </aside>
+    <main class="content">
+      <header><div><div class="eyebrow">WINDOWS BLUETOOTH / BLE PERIPHERAL</div><h1>Bluetooth 동글 기능 검증</h1><p>어댑터 지원 기능부터 GATT 서버와 스마트폰 동시 연결까지 확인하세요.</p></div><span id="statusBadge" class="status busy" aria-live="polite">장치 확인 중</span></header>
+      <div id="errorBanner" class="errorBanner" role="alert" hidden></div>
+      <div id="progress" class="progress" role="status" hidden><span class="spinner"></span><span id="progressText">장치 정보를 조회하고 있습니다.</span></div>
+
+      <section class="panel" id="adapterPanel">
+        <div class="panelHead"><div><h2>Bluetooth 어댑터</h2><p>BARROT USB 동글을 식별하고 현재 연결된 장치를 선택합니다.</p></div><button id="refresh" class="btn ghost" data-operation>↻ 장치 새로 조회</button></div>
+        <div class="adapterSelect"><label>검사할 어댑터<select id="adapterSelect" disabled><option value="">장치를 조회하고 있습니다…</option></select></label><button id="probe" class="btn primary" data-operation disabled>지원 기능 다시 검사</button></div>
+        <div class="deviceDetails" id="deviceDetails"><span>장치 정보를 불러오는 중입니다. PnP 조회는 최대 45초 걸릴 수 있습니다.</span></div>
+        <details class="pnpDetails"><summary>전체 PnP 장치 · 과거 Unknown 장치 구분 <span id="pnpCount"></span></summary><div class="tableScroll"><table><thead><tr><th>장치 / Instance ID</th><th>현재 존재</th><th>PnP</th><th>드라이버</th></tr></thead><tbody id="pnpBody"><tr><td colspan="4">조회 전</td></tr></tbody></table></div></details>
+        <p class="smallNote">어댑터를 변경하거나 새로 조회하면 광고가 종료됩니다. Unknown 상태와 현재 연결 여부는 별도로 표시합니다.</p>
+      </section>
+
+      <section id="capabilities" class="capabilitySection">
+        <div class="sectionHead"><h2>BLE 지원 기능</h2><span>BluetoothAdapter · 실제 API 응답</span></div>
+        <div class="capabilityGrid">
+          <article class="capability featured" id="capPeripheral"><div class="capLabel">PERIPHERAL ROLE <span>핵심 검사</span></div><strong id="peripheralValue">미확인</strong><p>BLE Peripheral 역할</p><small id="peripheralDetail">어댑터 선택 후 확인</small></article>
+          <article class="capability" id="capBle"><div class="capLabel">BLUETOOTH LE</div><strong id="bleValue">미확인</strong><p>BLE 전송 지원</p><small id="bleDetail">어댑터 선택 후 확인</small></article>
+          <article class="capability" id="capCentral"><div class="capLabel">CENTRAL ROLE</div><strong id="centralValue">미확인</strong><p>BLE Central 역할</p><small id="centralDetail">어댑터 선택 후 확인</small></article>
+          <article class="capability" id="capExtended"><div class="capLabel">EXTENDED ADV.</div><strong id="extendedValue">미확인</strong><p>확장 광고 지원</p><small id="extendedDetail">어댑터 선택 후 확인</small></article>
+        </div>
+        <p id="capabilityNote" class="smallNote">지원 True는 실제 광고 및 스마트폰 연결 성공과 별개입니다.</p>
+      </section>
+
+      <section class="panel" id="resultsPanel">
+        <div class="panelHead"><div><h2>6단계 독립 판정</h2><p>성공 근거와 확인 시각을 단계별로 기록합니다. 기능 True가 다음 단계 성공을 의미하지 않습니다.</p></div><span class="miniTag" id="runLabel">시험 준비</span></div>
+        <div class="tableScroll"><table class="stageTable"><thead><tr><th>시험 단계</th><th>결과</th><th>근거 / 확인 시각</th></tr></thead><tbody id="stageResults"><tr><td colspan="3">결과 조회 전</td></tr></tbody></table></div>
+        <p class="smallNote" id="archiveInfo">이전 시험은 별도로 보존해 JSON/CSV에 포함합니다.</p>
+      </section>
+
+      <div class="columns">
+        <section class="panel" id="serverPanel">
+          <div class="panelHead"><div><h2>GATT 서버 · BLE 광고</h2><p>스마트폰이 연결할 수 있는 진단용 서비스를 엽니다.</p></div><span class="miniTag">GATT SERVER</span></div>
+          <div class="advertisingState"><span id="advertisingBadge" class="status">미시험</span><span id="advertisingDetail">아직 광고를 시작하지 않았습니다.</span></div>
+          <div class="uuidBox"><label>Service UUID</label><div><code id="serviceUuid">7a310001-8d4e-4ef0-a4d7-95d1a468d001</code><button class="copyButton" data-copy="serviceUuid" aria-label="Service UUID 복사">복사</button></div><label>Read / Write Characteristic UUID</label><div><code id="characteristicUuid">7a310002-8d4e-4ef0-a4d7-95d1a468d001</code><button class="copyButton" data-copy="characteristicUuid" aria-label="Characteristic UUID 복사">복사</button></div></div>
+          <div class="inlineButtons"><button id="startServer" class="btn primary" data-operation disabled>▶ GATT 서버 시작</button><button id="stopServer" class="btn secondary" data-operation disabled>■ 서버 종료</button></div>
+          <p class="smallNote" id="serverPrerequisite">Peripheral=True, 선택한 기본 라디오만 활성화된 상태가 필요합니다.</p>
+          <p class="smallNote">Legacy 강제 설정 API 없음 · Extended PHY 설정 사용 안 함 · 실제 광고 패킷 형식은 확인되지 않음. nRF Connect의 광고 상세 또는 별도 무선 관측으로 확인하세요.</p>
+        </section>
+        <section class="panel" id="phonePanel">
+          <div class="panelHead"><div><h2>스마트폰 읽기 · 쓰기 시험</h2><p>Android nRF Connect의 SCANNER → CONNECT → CLIENT 순서로 진행하세요.</p></div><span class="miniTag purple">PHONE TEST</span></div>
+          <ol class="phoneSteps"><li><span>01</span><div><b>검색 후 연결</b><p>Service UUID로 PC를 식별하고 연결합니다.</p></div><span id="scanEvidence" class="evidence">사용자 확인</span></li><li><span>02</span><div><b>특성 Read</b><p>최초 응답 <code>READY</code> 확인</p></div><span id="readEvidence" class="evidence">요청 대기</span></li><li><span>03</span><div><b>Write with response</b><p>UTF-8 · 줄바꿈 없이 아래 명령 전송</p></div><span id="writeEvidence" class="evidence">요청 대기</span></li></ol>
+          <div class="commandBox"><code id="testCommand">OPEN_SIMULATION</code><button class="copyButton" data-copy="testCommand">명령 복사</button></div>
+          <p class="smallNote">다시 Read하여 <code>OK:OPEN_SIMULATION</code>을 확인하세요. 실제 장치는 제어하지 않습니다.</p>
+        </section>
+      </div>
+
+      <section class="panel" id="connectionsPanel">
+        <div class="panelHead"><div><h2>동시 연결 관측</h2><p>A 연결 유지 → B 추가 → C 추가 후 각 스마트폰에서 Read / Write를 반복하세요.</p></div><span class="miniTag">LIVE SESSIONS</span></div>
+        <div class="metrics connectionMetrics"><div><span>현재 관측 GATT 세션</span><strong id="currentSessions">—</strong></div><div><span>최고 관측 세션</span><strong id="peakSessions">—</strong></div><div><span>시험 성공 폰 수 (하한)</span><strong id="peakPhones">—</strong></div><div><span>실제 물리 연결 수 / Controller 최대</span><strong class="outcome" id="physicalConnections">확인되지 않음</strong></div></div>
+        <div id="sessionList" class="sessionList"><div class="emptyState">첫 GATT 요청 이후 활성 세션이 표시됩니다.</div></div>
+        <form id="mappingForm" class="mappingForm"><label>방금 폰에서 요청한 활성 세션<select id="mapConnection" required><option value="">첫 GATT 요청 후 선택</option></select></label><label>실제 스마트폰<select id="mapAlias"><option value="A">스마트폰 A</option><option value="B">스마트폰 B</option><option value="C">스마트폰 C</option></select></label><button id="mapPhone" class="btn secondary" data-operation>폰 ↔ 세션 매핑</button></form>
+        <p class="smallNote">한 대씩 Read/Write하고 최근 활동 시각과 ID로 식별하세요. 매핑은 사용자가 확인한 별칭이며 MAC 주소만으로 실제 폰을 추정하지 않습니다.</p>
+        <div class="trialBox"><h3>다중 폰 동시 통신 시험</h3><p>매핑한 폰의 연결을 유지한 채 시험을 시작하고, 30초 안에 모든 폰에서 OPEN_SIMULATION을 다시 전송하세요.</p><div class="trialOptions"><label>시험 대상<select id="trialCount"><option value="2">A + B · 2대</option><option value="3" selected>A + B + C · 3대</option></select></label><label class="checkLabel"><input id="identitiesConfirmed" type="checkbox">A/B/C가 서로 다른 실제 폰임을 확인했습니다.</label><button id="beginTrial" class="btn primary" data-operation>30초 시험 시작</button></div><div id="trialStatus" class="trialStatus" role="status">미시험 · 세션 개수만으로 성공 처리하지 않습니다.</div><label class="checkLabel"><input id="responsesConfirmed" type="checkbox">모든 대상 폰에서 OK:OPEN_SIMULATION 응답과 연결 유지를 확인했습니다.</label><div class="inlineButtons"><button id="confirmTrial" class="btn primary" data-operation disabled>통신 유지 확인 · 성공 확정</button><button id="cancelTrial" class="btn secondary" data-operation disabled>시험 취소</button></div></div>
+        <details class="pnpDetails"><summary>종료된 세션 포함 연결·활동 이력</summary><div class="tableScroll"><table><thead><tr><th>폰 / 세션 ID</th><th>첫 관측 / 최근 활동</th><th>읽기 / 쓰기 / 정상 명령 / 오류</th><th>상태 / 종료 사유</th></tr></thead><tbody id="sessionHistory"></tbody></table></div><div class="tableScroll"><table><thead><tr><th>시각 / 폰</th><th>요청</th><th>처리 결과</th></tr></thead><tbody id="activityHistory"></tbody></table></div></details>
+        <p class="smallNote">관측 시간은 첫 요청 기준이며 물리 연결 협상 시각이 아닙니다. 서버를 새로 시작하면 새 시험을 만들고 이전 시험의 판정·이력을 보존합니다.</p>
+      </section>
+
+      <section class="panel" id="observationPanel">
+        <div class="panelHead"><div><h2>스마트폰 실측 기록</h2><p>검색 여부와 연결 실패 등 PC API가 알 수 없는 결과를 별도로 기록합니다.</p></div><span class="miniTag neutral">사용자 확인 · API 결과와 별도</span></div>
+        <form id="observationForm"><div class="observationFields"><label>스마트폰 별칭<input id="phoneAlias" value="스마트폰 A" required maxlength="80"></label><label>시험 항목<select id="testStage"><option>검색</option><option>연결</option><option>읽기</option><option>쓰기</option><option>동시 연결</option><option>연결 해제</option><option>광고 형식</option></select></label><label>실측 결과<select id="testOutcome"><option>성공</option><option>실패</option><option>미확인</option></select></label><label>상세 메모<input id="observationDetail" maxlength="2000" placeholder="모델, 오류 코드, 응답, 연결 유지 상황"></label><button class="btn secondary" id="saveObservation" data-operation type="submit">기록 추가</button></div></form>
+        <div id="observations" class="observations"><span class="smallNote">아직 기록된 사용자 실측이 없습니다.</span></div>
+      </section>
+
+      <section class="panel logPanel" id="logPanel">
+        <div class="panelHead"><div><h2>실시간 진단 로그</h2><p>광고 상태 · GATT 요청 · 세션 종료 · 실제 오류 코드</p></div><div class="logTools"><label class="srOnly" for="logFilter">로그 필터</label><select id="logFilter"><option value="all">전체 로그</option><option value="gatt">GATT / 연결</option><option value="error">오류</option></select><button id="clearLog" class="btn textButton">표시 지우기</button></div></div>
+        <div id="log" class="log" role="log" aria-label="진단 로그"><div class="line info">진단 엔진을 연결하고 있습니다…</div></div>
+      </section>
+      <section class="exportBar"><div><b>진단 결과 내보내기</b><p id="exportPath">어댑터 · API 결과 · 세션 · 실측 메모 · 로그를 JSON / CSV로 저장합니다.</p></div><div class="inlineButtons"><button id="revealReport" class="btn secondary" hidden>저장 폴더 열기</button><button id="saveReport" class="btn dark" data-operation disabled>↓ JSON / CSV 저장</button></div></section>
+      <footer>Bluetooth Adapter Lab · Windows 공식 Bluetooth API · 장치명과 Bluetooth 버전만으로 기능을 추정하지 않습니다.</footer>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+bin/
+obj/
+artifacts/
+results/
+gui/node_modules/
+gui/backend/
+gui/backend-package/
+gui/backend-dev/
+gui/dist/
+gui/test-results/
+
+# Local hardware audit notes contain adapter addresses and machine-specific IDs.
+/VERIFICATION*.md
